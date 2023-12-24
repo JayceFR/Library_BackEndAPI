@@ -22,7 +22,7 @@ func (s *ApiHandler) GetAllAcounts(ctx context.Context, db gorm.DB) ([]*Account,
 			&account.FirstName,
 			&account.Email,
 			&account.Password,
-      &account.CommunityID,
+			&account.CommunityID,
 		)
 		if err != nil {
 			return []*Account{}, err
@@ -32,26 +32,28 @@ func (s *ApiHandler) GetAllAcounts(ctx context.Context, db gorm.DB) ([]*Account,
 	return response, nil
 }
 
-func (s *ApiHandler) GetAllComms(ctx context.Context, db gorm.DB) ([]*Community, error){
-  rows, err := s.db.WithContext(ctx).
-    Select("*").
-    Table("communities").
-    Rows()
-  if err != nil {
-    return []*Community{}, err
-  }
-  response := []*Community{}
-  for rows.Next(){
-    comm := Community{}
-    err := rows.Scan(
-      &comm.ID,
-      &comm.CommunityName,
-      &comm.NoOfUsers,
-    )
-    if err != nil{
-      return []*Community{}, err
-    }
-    response = append(response, &comm)
-  }
-  return response, nil
+func (s *ApiHandler) GetAllComms(ctx context.Context, db gorm.DB) ([]*Community, error) {
+	//Fetch all the communities from the backend database.
+	rows, err := s.db.WithContext(ctx).
+		Select("*").
+		Table("communities").
+		Rows()
+	if err != nil {
+		return []*Community{}, err
+	}
+	response := []*Community{}
+	//Turn the rows into a collection of objects
+	for rows.Next() {
+		comm := Community{}
+		err := rows.Scan(
+			&comm.ID,
+			&comm.CommunityName,
+			&comm.NoOfUsers,
+		)
+		if err != nil {
+			return []*Community{}, err
+		}
+		response = append(response, &comm)
+	}
+	return response, nil
 }

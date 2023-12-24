@@ -8,20 +8,22 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"golang.org/x/net/websocket"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
 type ApiHandler struct {
-	db gorm.DB
+	db    gorm.DB
+	conns map[uuid.UUID]*websocket.Conn
 }
 
 type Account struct {
-	ID        uuid.UUID `gorm:"primarykey" json:"id"`
-	FirstName string    `json:"first_name"`
-	Email     string    `json:"email"`
-	Password  []byte    `json:"password"`
-  CommunityID uuid.UUID `gorm:"foreignkey:CommunityID" json:"community_id"`
+	ID          uuid.UUID `gorm:"primarykey" json:"id"`
+	FirstName   string    `json:"first_name"`
+	Email       string    `json:"email"`
+	Password    []byte    `json:"password"`
+	CommunityID uuid.UUID `gorm:"foreignkey:CommunityID" json:"community_id"`
 }
 
 type Community struct {
@@ -31,36 +33,37 @@ type Community struct {
 }
 
 type Message struct {
-  ID uuid.UUID `gorm:"primarykey" json: "id"`
-  Content string `json: "content"`
-  SenderID uuid.UUID `gorm:"foreignkey:SenderID" json: "sender_id"`
-  ReceiverID uuid.UUID `gorm:"foreignkey:ReceiverID" json: "receiver_id"`
-  SentAt time.Time `json: "sent_at"`
+	ID         uuid.UUID `gorm:"primarykey" json: "id"`
+	Content    string    `json: "content"`
+	SenderID   uuid.UUID `gorm:"foreignkey:SenderID" json: "sender_id"`
+	ReceiverID uuid.UUID `gorm:"foreignkey:ReceiverID" json: "receiver_id"`
+	SentAt     time.Time `json: "sent_at"`
 }
 
 func New() *ApiHandler {
 	//db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
-  dsn := "u217768772_Jayce:WHSJayce1@tcp(srv707.hstgr.io)/u217768772_Jayce";
-  db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{});
-  if err != nil {
-    fmt.Println(err.Error())
-  }
+	dsn := "u217768772_Jayce:WHSJayce1@tcp(srv707.hstgr.io)/u217768772_Jayce"
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	if err != nil {
+		fmt.Println(err.Error())
+	}
 	db.AutoMigrate(&Account{})
 	db.AutoMigrate(&Community{})
-  db.AutoMigrate(&Message{})
+	db.AutoMigrate(&Message{})
 	return &ApiHandler{
-		db: *db,
+		db:    *db,
+		conns: make(map[uuid.UUID]*websocket.Conn),
 	}
 }
 
 func (s *ApiHandler) NewAccount(firstName string, email string, passowrd []byte) *Account {
 	id := uuid.New()
 	return &Account{
-		ID:        id,
-		FirstName: firstName,
-		Email:     email,
-		Password:  passowrd,
-    CommunityID: uuid.Nil,
+		ID:          id,
+		FirstName:   firstName,
+		Email:       email,
+		Password:    passowrd,
+		CommunityID: uuid.Nil,
 	}
 }
 
@@ -97,10 +100,10 @@ func (s *ApiHandler) HandleSpecificAccount(w http.ResponseWriter, r *http.Reques
 	if r.Method == "DELETE" {
 		return s.handleDeleteAccount(ctx, w, r)
 	}
-  if r.Method == "POST"{
-    fmt.Print("I am here")
-    return s.handleUpdateCommId(ctx, w, r)
-  }
+	if r.Method == "POST" {
+		fmt.Print("I am here")
+		return s.handleUpdateCommId(ctx, w, r)
+	}
 	return fmt.Errorf("method not allowed %s", r.Method)
 }
 
@@ -114,17 +117,17 @@ func (s *ApiHandler) HandleLogin(w http.ResponseWriter, r *http.Request) error {
 
 // func (s *ApiHandler) HandleSpecificCommunity(w http.ResponseWriter, r *http.Request) error {
 // 	ctx := context.Background()
-	
+
 // 	return fmt.Errorf("method not allowed %s", r.Method)
 // }
 
 func (s *ApiHandler) HandleComms(w http.ResponseWriter, r *http.Request) error {
-  ctx := context.Background()
-  if r.Method == "GET"{
-    return s.handleGetAllComms(ctx, w, r)
-  }
-  if r.Method == "POST" {
-    return s.handleCreateCommunity(ctx, w, r)
-  }
-  return fmt.Errorf("method not allowed %s", r.Method)
+	ctx := context.Background()
+	if r.Method == "GET" {
+		return s.handleGetAllComms(ctx, w, r)
+	}
+	if r.Method == "POST" {
+		return s.handleCreateCommunity(ctx, w, r)
+	}
+	return fmt.Errorf("method not allowed %s", r.Method)
 }
