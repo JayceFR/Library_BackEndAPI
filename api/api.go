@@ -68,6 +68,7 @@ func (s *APIServer) Run() {
 	router.HandleFunc("/login", makeHttpHandleFunc(ApiHandler.HandleLogin))
 	router.HandleFunc("/community", makeHttpHandleFunc(ApiHandler.HandleComms))
 	router.HandleFunc("/ws", ApiHandler.WebsocketHandler)
+	router.HandleFunc("/search", ApiHandler.SearchWebsocketHandler)
 	http.ListenAndServe(s.listenAddr, router)
 }
 

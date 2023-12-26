@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -54,6 +55,36 @@ func (s *ApiHandler) GetAllComms(ctx context.Context, db gorm.DB) ([]*Community,
 			return []*Community{}, err
 		}
 		response = append(response, &comm)
+	}
+	return response, nil
+}
+
+type searchAccount struct {
+	ID        uuid.UUID `gorm:"primarykey" json:"id"`
+	FirstName string    `json:"first_name"`
+}
+
+func (s *ApiHandler) SearchAccount(ctx context.Context, db gorm.DB, query string) ([]*searchAccount, error) {
+	rows, err := s.db.WithContext(ctx).
+		Select("id, first_name").
+		Table("accounts").
+		Where("first_name like ?", "%"+query+"%").
+		Rows()
+	if err != nil {
+		return []*searchAccount{}, err
+	}
+	response := []*searchAccount{}
+	//turn it into json
+	for rows.Next() {
+		account := searchAccount{}
+		err = rows.Scan(
+			&account.ID,
+			&account.FirstName,
+		)
+		if err != nil {
+			return []*searchAccount{}, err
+		}
+		response = append(response, &account)
 	}
 	return response, nil
 }

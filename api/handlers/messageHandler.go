@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -78,6 +79,48 @@ func (s *ApiHandler) broadcast_message(message *Message) {
 			}
 		}(recepient)
 	}
-	//Need to write the message to the database
+	//Write the message to the database in either case
+	s.db.Create(message)
+}
 
+// Search endpoint
+func (s *ApiHandler) SearchWebsocketHandler(w http.ResponseWriter, r *http.Request) {
+	wsHandler := websocket.Handler(func(ws *websocket.Conn) {
+		defer ws.Close()
+		fmt.Println("New search incoming connection from client : ", ws.RemoteAddr())
+		s.search(ws, context.Background())
+	})
+	wsHandler.ServeHTTP(w, r)
+}
+
+func (s *ApiHandler) search(ws *websocket.Conn, ctx context.Context) {
+	buf := make([]byte, 1024)
+	for {
+		n, err := ws.Read(buf)
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			fmt.Println("Read error is enconuntered :", err)
+			continue
+		}
+		msg := buf[:n]
+		query := string(msg)
+		//Fetch from the db alike to query
+		fmt.Println(query)
+		accounts, err := s.SearchAccount(ctx, s.db, query)
+		if err != nil {
+			fmt.Println("Error in the database pull function", err)
+		}
+		//converting the message to json
+		marshal_message, erro := json.Marshal(accounts)
+		if erro != nil {
+			fmt.Println("Error while marshalling the returning account object ", erro)
+		}
+		go func(ws *websocket.Conn) {
+			if _, err := ws.Write(marshal_message); err != nil {
+				fmt.Println("Write error : ", err)
+			}
+		}(ws)
+	}
 }
