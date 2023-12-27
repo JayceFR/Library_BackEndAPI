@@ -42,7 +42,7 @@ type Message struct {
 
 func New() *ApiHandler {
 	//db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
-	dsn := "u217768772_Jayce:WHSJayce1@tcp(srv707.hstgr.io)/u217768772_Jayce"
+	dsn := "u217768772_Jayce:WHSJayce1@tcp(srv707.hstgr.io)/u217768772_Jayce?parseTime=true"
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		fmt.Println(err.Error())
@@ -128,6 +128,14 @@ func (s *ApiHandler) HandleComms(w http.ResponseWriter, r *http.Request) error {
 	}
 	if r.Method == "POST" {
 		return s.handleCreateCommunity(ctx, w, r)
+	}
+	return fmt.Errorf("method not allowed %s", r.Method)
+}
+
+func (s *ApiHandler) HandleMessages(w http.ResponseWriter, r *http.Request) error {
+	ctx := context.Background()
+	if r.Method == "POST" {
+		return s.getMessageHandler(ctx, w, r)
 	}
 	return fmt.Errorf("method not allowed %s", r.Method)
 }

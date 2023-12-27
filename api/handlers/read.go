@@ -88,3 +88,36 @@ func (s *ApiHandler) SearchAccount(ctx context.Context, db gorm.DB, query string
 	}
 	return response, nil
 }
+
+func (s *ApiHandler) GetMessages(ctx context.Context, db gorm.DB, sender_id string, receiver_id string) ([]*Message, error) {
+	rows, err := s.db.WithContext(ctx).
+		Select("*").
+		Table("messages").
+		Where("sender_id = ? ", sender_id).
+		Or("sender_id = ? ", receiver_id).
+		Where("receiver_id = ?", receiver_id).
+		Or("receiver_id = ?", sender_id).
+		Order("sent_at ASC").
+		Rows()
+
+	if err != nil {
+		return []*Message{}, err
+	}
+
+	response := []*Message{}
+	for rows.Next() {
+		message := Message{}
+		err = rows.Scan(
+			&message.ID,
+			&message.Content,
+			&message.SenderID,
+			&message.ReceiverID,
+			&message.SentAt,
+		)
+		if err != nil {
+			return []*Message{}, err
+		}
+		response = append(response, &message)
+	}
+	return response, nil
+}

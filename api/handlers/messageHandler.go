@@ -18,6 +18,26 @@ type Message_Posted struct {
 	Receiver_ID string `json: "receiver_id"`
 }
 
+type GetMessage struct {
+	SenderID   string `json: "sender_id"`
+	ReceiverID string `json: "receiver_id"`
+}
+
+func (s *ApiHandler) getMessageHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	getMessage := GetMessage{}
+	err := json.NewDecoder(r.Body).Decode(&getMessage)
+	fmt.Println(getMessage.SenderID)
+	fmt.Println(getMessage.ReceiverID)
+	if err != nil {
+		return err
+	}
+	response, erro := s.GetMessages(ctx, s.db, getMessage.SenderID, getMessage.ReceiverID)
+	if erro != nil {
+		return erro
+	}
+	return s.WriteJson(w, 200, response)
+}
+
 func (s *ApiHandler) WebsocketHandler(w http.ResponseWriter, r *http.Request) {
 	wsHandler := websocket.Handler(func(ws *websocket.Conn) {
 		defer ws.Close()
@@ -51,7 +71,7 @@ func (s *ApiHandler) readLoop(ws *websocket.Conn) {
 		fmt.Println("Content", post_message.Content)
 
 		fmt.Println(string(msg))
-		ws.Write([]byte("thank you for the msg!!! "))
+		// ws.Write([]byte("thank you for the msg!!! "))
 		message := &Message{
 			ID:         uuid.New(),
 			Content:    post_message.Content,
@@ -59,11 +79,11 @@ func (s *ApiHandler) readLoop(ws *websocket.Conn) {
 			ReceiverID: uuid.MustParse(post_message.Receiver_ID),
 			SentAt:     time.Now(),
 		}
-		s.broadcast_message(message)
+		s.broadcast_message(message, ws)
 	}
 }
 
-func (s *ApiHandler) broadcast_message(message *Message) {
+func (s *ApiHandler) broadcast_message(message *Message, sender *websocket.Conn) {
 	recepient, ok := s.conns[message.ReceiverID]
 	marshal_message, erro := json.Marshal(message)
 	if erro != nil {
@@ -79,6 +99,11 @@ func (s *ApiHandler) broadcast_message(message *Message) {
 			}
 		}(recepient)
 	}
+	go func(ws *websocket.Conn) {
+		if _, err := ws.Write(marshal_message); err != nil {
+			fmt.Println("Write error : ", err)
+		}
+	}(sender)
 	//Write the message to the database in either case
 	s.db.Create(message)
 }

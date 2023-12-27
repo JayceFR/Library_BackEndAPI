@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -31,6 +32,7 @@ func makeHttpHandleFunc(f apiFunc) http.HandlerFunc {
 		err := f(w, r)
 		if err != nil {
 			//handle the error
+			fmt.Println(err)
 			WriteJson(w, http.StatusBadRequest, ApiError{Error: err.Error()})
 		}
 	}
@@ -69,6 +71,7 @@ func (s *APIServer) Run() {
 	router.HandleFunc("/community", makeHttpHandleFunc(ApiHandler.HandleComms))
 	router.HandleFunc("/ws", ApiHandler.WebsocketHandler)
 	router.HandleFunc("/search", ApiHandler.SearchWebsocketHandler)
+	router.HandleFunc("/messages", makeHttpHandleFunc(ApiHandler.HandleMessages))
 	http.ListenAndServe(s.listenAddr, router)
 }
 
