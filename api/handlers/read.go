@@ -93,10 +93,10 @@ func (s *ApiHandler) GetMessages(ctx context.Context, db gorm.DB, sender_id stri
 	rows, err := s.db.WithContext(ctx).
 		Select("*").
 		Table("messages").
-		Where("sender_id = ? ", sender_id).
-		Or("sender_id = ? ", receiver_id).
-		Where("receiver_id = ?", receiver_id).
-		Or("receiver_id = ?", sender_id).
+		Where("(sender_id = ? ", sender_id).
+		Where("receiver_id = ?)", receiver_id).
+		Or("(sender_id = ? ", receiver_id).
+		Where("receiver_id = ?)", sender_id).
 		Order("sent_at ASC").
 		Rows()
 
@@ -118,6 +118,33 @@ func (s *ApiHandler) GetMessages(ctx context.Context, db gorm.DB, sender_id stri
 			return []*Message{}, err
 		}
 		response = append(response, &message)
+	}
+	return response, nil
+}
+
+// For the left pane in message system
+func (s *ApiHandler) GetChatHistory(ctx context.Context, db gorm.DB, user_id string) ([]*searchAccount, error) {
+	rows, err := s.db.WithContext(ctx).
+		Distinct("a.first_name as first_name, CASE WHEN sender_id = ? THEN receiver_id ELSE sender_id END as id", user_id).
+		Table("messages, accounts as a").
+		Where("(sender_id = ? AND a.id = receiver_id)", user_id).
+		Or("(sender_id <> ? AND a.id = sender_id)", user_id).
+		Order("sent_at DESC").
+		Rows()
+	if err != nil {
+		return []*searchAccount{}, err
+	}
+	response := []*searchAccount{}
+	for rows.Next() {
+		account := searchAccount{}
+		err = rows.Scan(
+			&account.FirstName,
+			&account.ID,
+		)
+		if err != nil {
+			return []*searchAccount{}, err
+		}
+		response = append(response, &account)
 	}
 	return response, nil
 }

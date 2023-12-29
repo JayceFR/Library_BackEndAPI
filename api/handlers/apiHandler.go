@@ -139,3 +139,11 @@ func (s *ApiHandler) HandleMessages(w http.ResponseWriter, r *http.Request) erro
 	}
 	return fmt.Errorf("method not allowed %s", r.Method)
 }
+
+func (s *ApiHandler) HandleSpecificMessage(w http.ResponseWriter, r *http.Request) error {
+	ctx := context.Background()
+	if r.Method == "GET" {
+		return s.getChats(ctx, w, r)
+	}
+	return fmt.Errorf("method not allowed %s", r.Method)
+}

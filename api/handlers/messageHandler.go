@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/gorilla/mux"
 	"golang.org/x/net/websocket"
 )
 
@@ -34,6 +35,15 @@ func (s *ApiHandler) getMessageHandler(ctx context.Context, w http.ResponseWrite
 	response, erro := s.GetMessages(ctx, s.db, getMessage.SenderID, getMessage.ReceiverID)
 	if erro != nil {
 		return erro
+	}
+	return s.WriteJson(w, 200, response)
+}
+
+func (s *ApiHandler) getChats(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	id := mux.Vars(r)["id"]
+	response, err := s.GetChatHistory(ctx, s.db, id)
+	if err != nil {
+		return err
 	}
 	return s.WriteJson(w, 200, response)
 }
