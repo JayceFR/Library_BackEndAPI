@@ -62,9 +62,10 @@ func (s *ApiHandler) GetAllComms(ctx context.Context, db gorm.DB) ([]*Community,
 type searchAccount struct {
 	ID        uuid.UUID `gorm:"primarykey" json:"id"`
 	FirstName string    `json:"first_name"`
+	Bubble    int64     `json:"bubble"`
 }
 
-func (s *ApiHandler) SearchAccount(ctx context.Context, db gorm.DB, query string) ([]*searchAccount, error) {
+func (s *ApiHandler) SearchAccount(ctx context.Context, db gorm.DB, query string, id string) ([]*searchAccount, error) {
 	rows, err := s.db.WithContext(ctx).
 		Select("id, first_name").
 		Table("accounts").
@@ -81,6 +82,7 @@ func (s *ApiHandler) SearchAccount(ctx context.Context, db gorm.DB, query string
 			&account.ID,
 			&account.FirstName,
 		)
+		s.db.Model(&Message{}).Where("sender_id = ?", account.ID).Where("receiver_id = ?", id).Where("seen = ?", 0).Count(&account.Bubble)
 		if err != nil {
 			return []*searchAccount{}, err
 		}
@@ -113,6 +115,7 @@ func (s *ApiHandler) GetMessages(ctx context.Context, db gorm.DB, sender_id stri
 			&message.SenderID,
 			&message.ReceiverID,
 			&message.SentAt,
+			&message.Seen,
 		)
 		if err != nil {
 			return []*Message{}, err
@@ -141,6 +144,7 @@ func (s *ApiHandler) GetChatHistory(ctx context.Context, db gorm.DB, user_id str
 			&account.FirstName,
 			&account.ID,
 		)
+		s.db.Model(&Message{}).Where("sender_id = ?", account.ID).Where("receiver_id = ?", user_id).Where("seen = ?", 0).Count(&account.Bubble)
 		if err != nil {
 			return []*searchAccount{}, err
 		}

@@ -27,11 +27,13 @@ type GetMessage struct {
 func (s *ApiHandler) getMessageHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	getMessage := GetMessage{}
 	err := json.NewDecoder(r.Body).Decode(&getMessage)
-	fmt.Println(getMessage.SenderID)
+	fmt.Println(getMessage.SenderID) // the current user who is using the application
 	fmt.Println(getMessage.ReceiverID)
 	if err != nil {
 		return err
 	}
+	//make every message sent by the recepient and received by the user (SenderID) seen.
+	s.db.Model(&Message{}).Where("sender_id = ? and receiver_id = ?", getMessage.ReceiverID, getMessage.SenderID).Updates(Message{Seen: true})
 	response, erro := s.GetMessages(ctx, s.db, getMessage.SenderID, getMessage.ReceiverID)
 	if erro != nil {
 		return erro
@@ -39,6 +41,7 @@ func (s *ApiHandler) getMessageHandler(ctx context.Context, w http.ResponseWrite
 	return s.WriteJson(w, 200, response)
 }
 
+// Need to even get the number of unseen messages.
 func (s *ApiHandler) getChats(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	id := mux.Vars(r)["id"]
 	response, err := s.GetChatHistory(ctx, s.db, id)
@@ -88,6 +91,7 @@ func (s *ApiHandler) readLoop(ws *websocket.Conn) {
 			SenderID:   uuid.MustParse(post_message.Sender_ID),
 			ReceiverID: uuid.MustParse(post_message.Receiver_ID),
 			SentAt:     time.Now(),
+			Seen:       false,
 		}
 		s.broadcast_message(message, ws)
 	}
@@ -122,13 +126,14 @@ func (s *ApiHandler) broadcast_message(message *Message, sender *websocket.Conn)
 func (s *ApiHandler) SearchWebsocketHandler(w http.ResponseWriter, r *http.Request) {
 	wsHandler := websocket.Handler(func(ws *websocket.Conn) {
 		defer ws.Close()
+		id := uuid.MustParse(r.URL.Query().Get("id"))
 		fmt.Println("New search incoming connection from client : ", ws.RemoteAddr())
-		s.search(ws, context.Background())
+		s.search(ws, context.Background(), id.String())
 	})
 	wsHandler.ServeHTTP(w, r)
 }
 
-func (s *ApiHandler) search(ws *websocket.Conn, ctx context.Context) {
+func (s *ApiHandler) search(ws *websocket.Conn, ctx context.Context, id string) {
 	buf := make([]byte, 1024)
 	for {
 		n, err := ws.Read(buf)
@@ -143,7 +148,7 @@ func (s *ApiHandler) search(ws *websocket.Conn, ctx context.Context) {
 		query := string(msg)
 		//Fetch from the db alike to query
 		fmt.Println(query)
-		accounts, err := s.SearchAccount(ctx, s.db, query)
+		accounts, err := s.SearchAccount(ctx, s.db, query, id)
 		if err != nil {
 			fmt.Println("Error in the database pull function", err)
 		}

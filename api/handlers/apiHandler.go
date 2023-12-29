@@ -38,6 +38,7 @@ type Message struct {
 	SenderID   uuid.UUID `gorm:"foreignkey:SenderID" json: "sender_id"`
 	ReceiverID uuid.UUID `gorm:"foreignkey:ReceiverID" json: "receiver_id"`
 	SentAt     time.Time `json: "sent_at"`
+	Seen       bool      `json: "seen"`
 }
 
 func New() *ApiHandler {
