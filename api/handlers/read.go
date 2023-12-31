@@ -63,6 +63,7 @@ type searchAccount struct {
 	ID        uuid.UUID `gorm:"primarykey" json:"id"`
 	FirstName string    `json:"first_name"`
 	Bubble    int64     `json:"bubble"`
+	Active    bool      `json:"active"`
 }
 
 func (s *ApiHandler) SearchAccount(ctx context.Context, db gorm.DB, query string, id string) ([]*searchAccount, error) {
@@ -82,6 +83,12 @@ func (s *ApiHandler) SearchAccount(ctx context.Context, db gorm.DB, query string
 			&account.ID,
 			&account.FirstName,
 		)
+		_, ok := s.active_conns[account.ID.String()]
+		if ok {
+			account.Active = true
+		} else {
+			account.Active = false
+		}
 		s.db.Model(&Message{}).Where("sender_id = ?", account.ID).Where("receiver_id = ?", id).Where("seen = ?", 0).Count(&account.Bubble)
 		if err != nil {
 			return []*searchAccount{}, err
@@ -127,12 +134,26 @@ func (s *ApiHandler) GetMessages(ctx context.Context, db gorm.DB, sender_id stri
 
 // For the left pane in message system
 func (s *ApiHandler) GetChatHistory(ctx context.Context, db gorm.DB, user_id string) ([]*searchAccount, error) {
+	// rows, err := s.db.WithContext(ctx).
+	// 	Distinct("a.first_name as first_name, CASE WHEN sender_id = ? THEN receiver_id ELSE sender_id END as id", user_id).
+	// 	Table("messages, accounts as a").
+	// 	Where("(sender_id = ? AND a.id = receiver_id)", user_id).
+	// 	Or("(sender_id <> ? AND a.id = sender_id)", user_id).
+	// 	Order("sent_at ASC").
+	// 	Rows()
+	subquery1 := s.db.Select("sender_id as user_id, max(sent_at) as latest_time").
+		Table("messages").
+		Where("sender_id <> ?", user_id).
+		Group("sender_id")
+	subquery2 := s.db.Select("receiver_id as user_id, max(sent_at) as latest_time").
+		Table("messages").
+		Where("receiver_id <> ?", user_id).
+		Group("receiver_id")
 	rows, err := s.db.WithContext(ctx).
-		Distinct("a.first_name as first_name, CASE WHEN sender_id = ? THEN receiver_id ELSE sender_id END as id", user_id).
-		Table("messages, accounts as a").
-		Where("(sender_id = ? AND a.id = receiver_id)", user_id).
-		Or("(sender_id <> ? AND a.id = sender_id)", user_id).
-		Order("sent_at DESC").
+		Distinct("a.first_name, a.id").
+		Table("accounts as a").
+		Joins("JOIN (? UNION ALL ?) as m ON (m.user_id = a.id)", subquery1, subquery2).
+		Order("m.latest_time desc").
 		Rows()
 	if err != nil {
 		return []*searchAccount{}, err
@@ -144,7 +165,17 @@ func (s *ApiHandler) GetChatHistory(ctx context.Context, db gorm.DB, user_id str
 			&account.FirstName,
 			&account.ID,
 		)
-		s.db.Model(&Message{}).Where("sender_id = ?", account.ID).Where("receiver_id = ?", user_id).Where("seen = ?", 0).Count(&account.Bubble)
+		_, ok := s.active_conns[account.ID.String()]
+		if ok {
+			account.Active = true
+		} else {
+			account.Active = false
+		}
+		s.db.Model(&Message{}).
+			Where("sender_id = ?", account.ID).
+			Where("receiver_id = ?", user_id).
+			Where("seen = ?", 0).
+			Count(&account.Bubble)
 		if err != nil {
 			return []*searchAccount{}, err
 		}

@@ -14,8 +14,9 @@ import (
 )
 
 type ApiHandler struct {
-	db    gorm.DB
-	conns map[uuid.UUID]*websocket.Conn
+	db           gorm.DB
+	conns        map[uuid.UUID]*websocket.Conn
+	active_conns map[string]*websocket.Conn
 }
 
 type Account struct {
@@ -52,8 +53,9 @@ func New() *ApiHandler {
 	db.AutoMigrate(&Community{})
 	db.AutoMigrate(&Message{})
 	return &ApiHandler{
-		db:    *db,
-		conns: make(map[uuid.UUID]*websocket.Conn),
+		db:           *db,
+		conns:        make(map[uuid.UUID]*websocket.Conn),
+		active_conns: make(map[string]*websocket.Conn),
 	}
 }
 

@@ -33,7 +33,9 @@ func (s *ApiHandler) getMessageHandler(ctx context.Context, w http.ResponseWrite
 		return err
 	}
 	//make every message sent by the recepient and received by the user (SenderID) seen.
-	s.db.Model(&Message{}).Where("sender_id = ? and receiver_id = ?", getMessage.ReceiverID, getMessage.SenderID).Updates(Message{Seen: true})
+	s.db.Model(&Message{}).
+		Where("sender_id = ? and receiver_id = ?", getMessage.ReceiverID, getMessage.SenderID).
+		Updates(Message{Seen: true})
 	response, erro := s.GetMessages(ctx, s.db, getMessage.SenderID, getMessage.ReceiverID)
 	if erro != nil {
 		return erro
@@ -120,6 +122,77 @@ func (s *ApiHandler) broadcast_message(message *Message, sender *websocket.Conn)
 	}(sender)
 	//Write the message to the database in either case
 	s.db.Create(message)
+}
+
+// active endpoint
+func (s *ApiHandler) ActiveWebsocketHandler(w http.ResponseWriter, r *http.Request) {
+	wsHandler := websocket.Handler(func(ws *websocket.Conn) {
+		defer ws.Close()
+		fmt.Println("New incoming active connection from client : ", ws.RemoteAddr())
+		s.activeLoop(ws)
+	})
+	wsHandler.ServeHTTP(w, r)
+}
+
+type broad_id struct {
+	ID string `json:"id"`
+}
+
+type input_broad struct {
+	ID   string `json:"id"`
+	Type string `json:"type"`
+}
+
+func (s *ApiHandler) activeLoop(ws *websocket.Conn) {
+	buf := make([]byte, 1024)
+	for {
+		n, err := ws.Read(buf)
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			fmt.Println("Read error encountered : ", err)
+			continue
+		}
+		msg := buf[:n]
+		var broad input_broad
+		err = json.Unmarshal(msg, &broad)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(string(msg))
+		if broad.Type == "add" {
+			s.active_conns[broad.ID] = ws
+		}
+		defer s.remove(ws, broad.ID)
+		s.broadcast_to_all(ws)
+	}
+}
+
+func (s *ApiHandler) remove(ws *websocket.Conn, id string) {
+	delete(s.active_conns, id)
+	s.broadcast_to_all(ws)
+}
+
+func (s *ApiHandler) broadcast_to_all(ws *websocket.Conn) {
+	data := []*broad_id{}
+	for id, _ := range s.active_conns {
+		broad := broad_id{
+			ID: id,
+		}
+		data = append(data, &broad)
+	}
+	marshal_message, err := json.Marshal(data)
+	if err != nil {
+		fmt.Println("There is an error in converting to json", err)
+	}
+	for _, aws := range s.active_conns {
+		go func(ws *websocket.Conn) {
+			if _, err := ws.Write(marshal_message); err != nil {
+				fmt.Println("Write error : ", err)
+			}
+		}(aws)
+	}
 }
 
 // Search endpoint

@@ -73,6 +73,7 @@ func (s *APIServer) Run() {
 	router.HandleFunc("/search", ApiHandler.SearchWebsocketHandler)
 	router.HandleFunc("/messages", makeHttpHandleFunc(ApiHandler.HandleMessages))
 	router.HandleFunc("/chat/{id}", makeHttpHandleFunc(ApiHandler.HandleSpecificMessage))
+	router.HandleFunc("/active", ApiHandler.ActiveWebsocketHandler)
 	http.ListenAndServe(s.listenAddr, router)
 }
 
