@@ -74,6 +74,8 @@ func (s *APIServer) Run() {
 	router.HandleFunc("/messages", makeHttpHandleFunc(ApiHandler.HandleMessages))
 	router.HandleFunc("/chat/{id}", makeHttpHandleFunc(ApiHandler.HandleSpecificMessage))
 	router.HandleFunc("/active", ApiHandler.ActiveWebsocketHandler)
+	router.HandleFunc("/books", makeHttpHandleFunc(ApiHandler.HandleBooks))
+	router.HandleFunc("/images", makeHttpHandleFunc(ApiHandler.HandleImages))
 	http.ListenAndServe(s.listenAddr, router)
 }
 

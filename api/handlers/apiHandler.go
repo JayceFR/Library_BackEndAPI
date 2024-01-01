@@ -42,6 +42,25 @@ type Message struct {
 	Seen       bool      `json: "seen"`
 }
 
+type Book struct {
+	ID            uuid.UUID `gorm:"primarykey" json: "id"`
+	Owner_id      uuid.UUID `gorm:"foreignkey:Owner_id json : "ownner_id"`
+	ISBN          string    `json:isbn`
+	Name          string    `json:"name"`
+	Author        string    `json:"author"`
+	Borrowed      bool      `json:"borrowed"`
+	Borrowed_date time.Time `json:"date_borrowed"`
+	Return_date   time.Time `json:"return_date"`
+	Borrower_id   uuid.UUID `json:"borrower_id"`
+}
+
+type Images struct {
+	ID        uuid.UUID `gorm:"primarykey" json:"id"`
+	Object_id uuid.UUID `gorm:"foreignkey:Object_id" json:"object_id"`
+	Type      string    `json:"type"`
+	Data      []byte    `gorm:"type:longblob" json:"data"`
+}
+
 func New() *ApiHandler {
 	//db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
 	dsn := "u217768772_Jayce:WHSJayce1@tcp(srv707.hstgr.io)/u217768772_Jayce?parseTime=true"
@@ -52,6 +71,8 @@ func New() *ApiHandler {
 	db.AutoMigrate(&Account{})
 	db.AutoMigrate(&Community{})
 	db.AutoMigrate(&Message{})
+	db.AutoMigrate(&Book{})
+	db.AutoMigrate(&Images{})
 	return &ApiHandler{
 		db:           *db,
 		conns:        make(map[uuid.UUID]*websocket.Conn),
@@ -147,6 +168,22 @@ func (s *ApiHandler) HandleSpecificMessage(w http.ResponseWriter, r *http.Reques
 	ctx := context.Background()
 	if r.Method == "GET" {
 		return s.getChats(ctx, w, r)
+	}
+	return fmt.Errorf("method not allowed %s", r.Method)
+}
+
+func (s *ApiHandler) HandleBooks(w http.ResponseWriter, r *http.Request) error {
+	ctx := context.Background()
+	if r.Method == "POST" {
+		return s.handle_post_book(ctx, w, r)
+	}
+	return fmt.Errorf("method not allowed %s", r.Method)
+}
+
+func (s *ApiHandler) HandleImages(w http.ResponseWriter, r *http.Request) error {
+	ctx := context.Background()
+	if r.Method == "POST" {
+		return s.handleCreateImage(ctx, w, r)
 	}
 	return fmt.Errorf("method not allowed %s", r.Method)
 }
