@@ -134,13 +134,6 @@ func (s *ApiHandler) GetMessages(ctx context.Context, db gorm.DB, sender_id stri
 
 // For the left pane in message system
 func (s *ApiHandler) GetChatHistory(ctx context.Context, db gorm.DB, user_id string) ([]*searchAccount, error) {
-	// rows, err := s.db.WithContext(ctx).
-	// 	Distinct("a.first_name as first_name, CASE WHEN sender_id = ? THEN receiver_id ELSE sender_id END as id", user_id).
-	// 	Table("messages, accounts as a").
-	// 	Where("(sender_id = ? AND a.id = receiver_id)", user_id).
-	// 	Or("(sender_id <> ? AND a.id = sender_id)", user_id).
-	// 	Order("sent_at ASC").
-	// 	Rows()
 	subquery1 := s.db.Select("sender_id as user_id, max(sent_at) as latest_time").
 		Table("messages").
 		Where("sender_id <> ?", user_id).
@@ -182,4 +175,40 @@ func (s *ApiHandler) GetChatHistory(ctx context.Context, db gorm.DB, user_id str
 		response = append(response, &account)
 	}
 	return response, nil
+}
+
+func (s *ApiHandler) GetBooks(ctx context.Context, db gorm.DB) ([]*books_fetch, error) {
+	rows, err := s.db.WithContext(ctx).
+		Select("*").
+		Table("books").
+		Rows()
+	if err != nil {
+		return []*books_fetch{}, err
+	}
+	books := []*books_fetch{}
+	for rows.Next() {
+		gbook := Book{}
+		err = rows.Scan(
+			&gbook.ID,
+			&gbook.Owner_id,
+			&gbook.ISBN,
+			&gbook.Name,
+			&gbook.Author,
+			&gbook.Borrowed,
+			&gbook.Borrowed_date,
+			&gbook.Return_date,
+			&gbook.Borrower_id,
+		)
+		if err != nil {
+			return []*books_fetch{}, err
+		}
+		gimage := Images{}
+		s.db.First(&gimage, "object_id = ? and type = 'profile'", gbook.ID)
+		curr_book := books_fetch{
+			Book:  gbook,
+			Image: gimage,
+		}
+		books = append(books, &curr_book)
+	}
+	return books, nil
 }

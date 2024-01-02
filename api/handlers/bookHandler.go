@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -33,4 +34,18 @@ func (s *ApiHandler) handle_post_book(ctx context.Context, w http.ResponseWriter
 
 	s.db.Create(book)
 	return s.WriteJson(w, http.StatusOK, book)
+}
+
+type books_fetch struct {
+	Book  Book   `json:"book"`
+	Image Images `json:"image"`
+}
+
+func (s *ApiHandler) handle_get_books(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	books, err := s.GetBooks(ctx, s.db)
+	fmt.Println(books[0].Book)
+	if err != nil {
+		return err
+	}
+	return s.WriteJson(w, http.StatusOK, books)
 }

@@ -69,6 +69,7 @@ func (s *APIServer) Run() {
 	router.HandleFunc("/account/{id}", makeHttpHandleFunc(ApiHandler.HandleSpecificAccount))
 	router.HandleFunc("/login", makeHttpHandleFunc(ApiHandler.HandleLogin))
 	router.HandleFunc("/community", makeHttpHandleFunc(ApiHandler.HandleComms))
+	router.HandleFunc("/community/{id}", makeHttpHandleFunc(ApiHandler.HandleSpecificComm))
 	router.HandleFunc("/ws", ApiHandler.WebsocketHandler)
 	router.HandleFunc("/search", ApiHandler.SearchWebsocketHandler)
 	router.HandleFunc("/messages", makeHttpHandleFunc(ApiHandler.HandleMessages))

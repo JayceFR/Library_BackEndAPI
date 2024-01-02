@@ -156,6 +156,14 @@ func (s *ApiHandler) HandleComms(w http.ResponseWriter, r *http.Request) error {
 	return fmt.Errorf("method not allowed %s", r.Method)
 }
 
+func (s *ApiHandler) HandleSpecificComm(w http.ResponseWriter, r *http.Request) error {
+	ctx := context.Background()
+	if r.Method == "GET" {
+		return s.handleGetCommunity(ctx, w, r)
+	}
+	return fmt.Errorf("method not allowed %s", r.Method)
+}
+
 func (s *ApiHandler) HandleMessages(w http.ResponseWriter, r *http.Request) error {
 	ctx := context.Background()
 	if r.Method == "POST" {
@@ -174,6 +182,9 @@ func (s *ApiHandler) HandleSpecificMessage(w http.ResponseWriter, r *http.Reques
 
 func (s *ApiHandler) HandleBooks(w http.ResponseWriter, r *http.Request) error {
 	ctx := context.Background()
+	if r.Method == "GET" {
+		return s.handle_get_books(ctx, w, r)
+	}
 	if r.Method == "POST" {
 		return s.handle_post_book(ctx, w, r)
 	}

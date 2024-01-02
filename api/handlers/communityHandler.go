@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
 type CreateCommunity struct {
@@ -31,9 +33,16 @@ func (s *ApiHandler) handleCreateCommunity(ctx context.Context, w http.ResponseW
 }
 
 func (s *ApiHandler) handleGetAllComms(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-  response, err := s.GetAllComms(ctx, s.db)
-  if err != nil{
-    fmt.Println(err.Error())
-  }
-  return s.WriteJson(w, http.StatusOK, response)
+	response, err := s.GetAllComms(ctx, s.db)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	return s.WriteJson(w, http.StatusOK, response)
+}
+
+func (s *ApiHandler) handleGetCommunity(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	id := mux.Vars(r)["id"]
+	comm := Community{}
+	s.db.First(&comm, "id = ?", id)
+	return s.WriteJson(w, http.StatusOK, comm)
 }
