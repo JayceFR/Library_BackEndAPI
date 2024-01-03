@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/gorilla/mux"
 )
 
 type book_post struct {
@@ -42,10 +43,31 @@ type books_fetch struct {
 }
 
 func (s *ApiHandler) handle_get_books(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-	books, err := s.GetBooks(ctx, s.db)
+	books, err := s.GetBooks(ctx, s.db, "")
 	fmt.Println(books[0].Book)
 	if err != nil {
 		return err
 	}
 	return s.WriteJson(w, http.StatusOK, books)
+}
+
+type specific_book_fetch struct {
+	Book   Book      `json:"book"`
+	Images []*Images `json:"images"`
+}
+
+func (s *ApiHandler) handleGetSpecificBook(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	id := mux.Vars(r)["id"]
+	book := Book{}
+	s.db.First(&book, "id = ?", id)
+	fmt.Println("Here is the book", book)
+	images, err := s.handle_get_image(ctx, id)
+	if err != nil {
+		return err
+	}
+	return_data := specific_book_fetch{
+		Book:   book,
+		Images: images,
+	}
+	return s.WriteJson(w, http.StatusOK, return_data)
 }

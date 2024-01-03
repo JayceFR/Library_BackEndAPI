@@ -44,3 +44,29 @@ func (s *ApiHandler) handleCreateImage(ctx context.Context, w http.ResponseWrite
 
 	return s.WriteJson(w, http.StatusOK, "succes")
 }
+
+func (s *ApiHandler) handle_get_image(ctx context.Context, id string) ([]*Images, error) {
+	rows, err := s.db.WithContext(ctx).
+		Select("*").
+		Table("images").
+		Where("object_id = ?", id).
+		Rows()
+	if err != nil {
+		return []*Images{}, err
+	}
+	images := []*Images{}
+	for rows.Next() {
+		image := Images{}
+		err := rows.Scan(
+			&image.ID,
+			&image.Object_id,
+			&image.Type,
+			&image.Data,
+		)
+		if err != nil {
+			return []*Images{}, err
+		}
+		images = append(images, &image)
+	}
+	return images, nil
+}

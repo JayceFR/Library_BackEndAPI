@@ -99,6 +99,15 @@ func (s *ApiHandler) readLoop(ws *websocket.Conn) {
 	}
 }
 
+func (s *ApiHandler) handleGetUserBook(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	id := mux.Vars(r)["id"]
+	books, err := s.GetBooks(ctx, s.db, id)
+	if err != nil {
+		return err
+	}
+	return s.WriteJson(w, http.StatusOK, books)
+}
+
 func (s *ApiHandler) broadcast_message(message *Message, sender *websocket.Conn) {
 	recepient, ok := s.conns[message.ReceiverID]
 	marshal_message, erro := json.Marshal(message)

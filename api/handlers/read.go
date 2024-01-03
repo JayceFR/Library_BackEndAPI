@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -136,17 +137,18 @@ func (s *ApiHandler) GetMessages(ctx context.Context, db gorm.DB, sender_id stri
 func (s *ApiHandler) GetChatHistory(ctx context.Context, db gorm.DB, user_id string) ([]*searchAccount, error) {
 	subquery1 := s.db.Select("sender_id as user_id, max(sent_at) as latest_time").
 		Table("messages").
-		Where("sender_id <> ?", user_id).
-		Group("sender_id")
+		Where("receiver_id = ?", user_id).
+		Group("sender_id").
+		Order("latest_time desc")
 	subquery2 := s.db.Select("receiver_id as user_id, max(sent_at) as latest_time").
 		Table("messages").
-		Where("receiver_id <> ?", user_id).
-		Group("receiver_id")
+		Where("sender_id = ?", user_id).
+		Group("receiver_id").
+		Order("latest_time desc")
 	rows, err := s.db.WithContext(ctx).
 		Distinct("a.first_name, a.id").
 		Table("accounts as a").
-		Joins("JOIN (? UNION ALL ?) as m ON (m.user_id = a.id)", subquery1, subquery2).
-		Order("m.latest_time desc").
+		Joins("JOIN ((?) UNION ALL (?) ORDER BY latest_time desc) as m ON m.user_id = a.id", subquery1, subquery2).
 		Rows()
 	if err != nil {
 		return []*searchAccount{}, err
@@ -177,11 +179,21 @@ func (s *ApiHandler) GetChatHistory(ctx context.Context, db gorm.DB, user_id str
 	return response, nil
 }
 
-func (s *ApiHandler) GetBooks(ctx context.Context, db gorm.DB) ([]*books_fetch, error) {
-	rows, err := s.db.WithContext(ctx).
-		Select("*").
-		Table("books").
-		Rows()
+func (s *ApiHandler) GetBooks(ctx context.Context, db gorm.DB, id string) ([]*books_fetch, error) {
+	rows := &sql.Rows{}
+	var err error
+	if id == "" {
+		rows, err = s.db.WithContext(ctx).
+			Select("*").
+			Table("books").
+			Rows()
+	} else {
+		rows, err = s.db.WithContext(ctx).
+			Select("*").
+			Table("books").
+			Where("owner_id = ?", id).
+			Rows()
+	}
 	if err != nil {
 		return []*books_fetch{}, err
 	}

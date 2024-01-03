@@ -191,6 +191,22 @@ func (s *ApiHandler) HandleBooks(w http.ResponseWriter, r *http.Request) error {
 	return fmt.Errorf("method not allowed %s", r.Method)
 }
 
+func (s *ApiHandler) HandleSpecificBook(w http.ResponseWriter, r *http.Request) error {
+	ctx := context.Background()
+	if r.Method == "GET" {
+		return s.handleGetSpecificBook(ctx, w, r)
+	}
+	return fmt.Errorf("method not allowed %s", r.Method)
+}
+
+func (s *ApiHandler) HandleBookUser(w http.ResponseWriter, r *http.Request) error {
+	ctx := context.Background()
+	if r.Method == "GET" {
+		return s.handleGetUserBook(ctx, w, r)
+	}
+	return fmt.Errorf("method not allowed %s", r.Method)
+}
+
 func (s *ApiHandler) HandleImages(w http.ResponseWriter, r *http.Request) error {
 	ctx := context.Background()
 	if r.Method == "POST" {
