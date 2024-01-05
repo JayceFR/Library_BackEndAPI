@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
@@ -70,4 +71,50 @@ func (s *ApiHandler) handleGetSpecificBook(ctx context.Context, w http.ResponseW
 		Images: images,
 	}
 	return s.WriteJson(w, http.StatusOK, return_data)
+}
+
+func (s *ApiHandler) handleGetSpecificBookMessage(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	id := mux.Vars(r)["id"]
+	book := Book{}
+	s.db.First(&book, "id = ?", id)
+	return s.WriteJson(w, http.StatusOK, book)
+}
+
+type UpdateBook struct {
+	State  string `json:"state"`
+	From   string `json:"from"`
+	To     string `json:"to"`
+	UserId string `json:"userid"`
+}
+
+func (s *ApiHandler) handleUpdateBook(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	id := mux.Vars(r)["id"]
+	updateBook := UpdateBook{}
+	err := json.NewDecoder(r.Body).Decode(&updateBook)
+	if err != nil {
+		return err
+	}
+	if updateBook.State == "return" {
+		s.db.Model(&Book{}).Where("id = ?", id).Update("borrowed", 0)
+	}
+	if updateBook.State == "borrow" {
+		book := Book{}
+		s.db.First(&book, "id = ?", id)
+		if !book.Borrowed {
+			borrowed_date, err := time.Parse("2006-01-02 15:04:05.000", updateBook.From)
+			if err != nil {
+				return err
+			}
+			return_date, err := time.Parse("2006-01-02 15:04:05.000", updateBook.To)
+			if err != nil {
+				return err
+			}
+			s.db.Model(&Book{}).Where("id = ?", id).Update("borrowed", 1).Update("borrowed_date", borrowed_date).Update("return_date", return_date).Update("borrower_id", updateBook.UserId)
+		} else {
+			return fmt.Errorf("Already the book is borrwoed")
+		}
+	}
+	return_book := Book{}
+	s.db.First(&return_book, "id = ?", id)
+	return s.WriteJson(w, http.StatusOK, return_book)
 }

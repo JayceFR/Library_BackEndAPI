@@ -17,6 +17,7 @@ type Message_Posted struct {
 	Content     string `json: "content"`
 	Sender_ID   string `json: "sender_id"`
 	Receiver_ID string `json: "receiver_id"`
+	Request     bool   `json: "request"`
 }
 
 type GetMessage struct {
@@ -87,15 +88,29 @@ func (s *ApiHandler) readLoop(ws *websocket.Conn) {
 
 		fmt.Println(string(msg))
 		// ws.Write([]byte("thank you for the msg!!! "))
-		message := &Message{
-			ID:         uuid.New(),
-			Content:    post_message.Content,
-			SenderID:   uuid.MustParse(post_message.Sender_ID),
-			ReceiverID: uuid.MustParse(post_message.Receiver_ID),
-			SentAt:     time.Now(),
-			Seen:       false,
+		if !post_message.Request {
+			message := &Message{
+				ID:         uuid.New(),
+				Content:    post_message.Content,
+				SenderID:   uuid.MustParse(post_message.Sender_ID),
+				ReceiverID: uuid.MustParse(post_message.Receiver_ID),
+				SentAt:     time.Now(),
+				Seen:       false,
+				Request:    false,
+			}
+			s.broadcast_message(message, ws)
+		} else {
+			message := &Message{
+				ID:         uuid.New(),
+				Content:    post_message.Content, //holds the uuid of the book
+				SenderID:   uuid.MustParse(post_message.Sender_ID),
+				ReceiverID: uuid.MustParse(post_message.Receiver_ID),
+				SentAt:     time.Now(),
+				Seen:       false,
+				Request:    true,
+			}
+			s.broadcast_message(message, ws)
 		}
-		s.broadcast_message(message, ws)
 	}
 }
 
@@ -106,6 +121,29 @@ func (s *ApiHandler) handleGetUserBook(ctx context.Context, w http.ResponseWrite
 		return err
 	}
 	return s.WriteJson(w, http.StatusOK, books)
+}
+
+type UpdateMessage struct {
+	Content string `json:"content"`
+}
+
+func (s *ApiHandler) handleUpdateMessage(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	id := mux.Vars(r)["id"]
+	update_message := UpdateMessage{}
+	err := json.NewDecoder(r.Body).Decode(&update_message)
+	if err != nil {
+		return err
+	}
+	s.db.Model(&Message{}).Where("id = ?", id).Update("content", update_message.Content)
+	return_data := Message{}
+	s.db.First(&return_data, "id = ?", id)
+	return s.WriteJson(w, http.StatusOK, return_data)
+}
+
+func (s *ApiHandler) handleDeleteMessage(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	id := mux.Vars(r)["id"]
+	s.db.Delete(&Message{}, "id = ?", id)
+	return s.WriteJson(w, http.StatusOK, "success")
 }
 
 func (s *ApiHandler) broadcast_message(message *Message, sender *websocket.Conn) {

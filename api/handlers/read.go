@@ -124,6 +124,7 @@ func (s *ApiHandler) GetMessages(ctx context.Context, db gorm.DB, sender_id stri
 			&message.ReceiverID,
 			&message.SentAt,
 			&message.Seen,
+			&message.Request,
 		)
 		if err != nil {
 			return []*Message{}, err

@@ -40,6 +40,7 @@ type Message struct {
 	ReceiverID uuid.UUID `gorm:"foreignkey:ReceiverID" json: "receiver_id"`
 	SentAt     time.Time `json: "sent_at"`
 	Seen       bool      `json: "seen"`
+	Request    bool      `json: "request"`
 }
 
 type Book struct {
@@ -177,6 +178,12 @@ func (s *ApiHandler) HandleSpecificMessage(w http.ResponseWriter, r *http.Reques
 	if r.Method == "GET" {
 		return s.getChats(ctx, w, r)
 	}
+	if r.Method == "POST" {
+		return s.handleUpdateMessage(ctx, w, r)
+	}
+	if r.Method == "DELETE" {
+		return s.handleDeleteMessage(ctx, w, r)
+	}
 	return fmt.Errorf("method not allowed %s", r.Method)
 }
 
@@ -195,6 +202,12 @@ func (s *ApiHandler) HandleSpecificBook(w http.ResponseWriter, r *http.Request) 
 	ctx := context.Background()
 	if r.Method == "GET" {
 		return s.handleGetSpecificBook(ctx, w, r)
+	}
+	if r.Method == "PUT" {
+		return s.handleGetSpecificBookMessage(ctx, w, r)
+	}
+	if r.Method == "POST" {
+		return s.handleUpdateBook(ctx, w, r)
 	}
 	return fmt.Errorf("method not allowed %s", r.Method)
 }
