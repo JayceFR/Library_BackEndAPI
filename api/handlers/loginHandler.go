@@ -13,6 +13,11 @@ type LoginAccount struct {
 	Password string `json:"password"`
 }
 
+type return_account struct {
+	User          Account          `json:"user"`
+	Notifications []*Notifications `json:"notifications"`
+}
+
 func (s *ApiHandler) HandleLoginAccount(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	loginAccount := LoginAccount{}
 	err := json.NewDecoder(r.Body).Decode(&loginAccount)
@@ -24,5 +29,13 @@ func (s *ApiHandler) HandleLoginAccount(ctx context.Context, w http.ResponseWrit
 	bs := h.Sum(nil)
 	var check_account Account
 	s.db.First(&check_account, "email = ? AND password = ?", loginAccount.Email, bs)
-	return s.WriteJson(w, http.StatusOK, check_account)
+	notifications, err := s.handleGetNotifications(ctx, check_account.ID)
+	if err != nil {
+		return err
+	}
+	account := return_account{
+		User:          check_account,
+		Notifications: notifications,
+	}
+	return s.WriteJson(w, http.StatusOK, &account)
 }

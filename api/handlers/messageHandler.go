@@ -186,8 +186,15 @@ type broad_id struct {
 }
 
 type input_broad struct {
-	ID   string `json:"id"`
-	Type string `json:"type"`
+	ID      string `json:"id"`
+	Type    string `json:"type"`
+	Content string `json:"content"`
+}
+
+type return_message struct {
+	Type         string        `json:"type"`
+	Conns        []*broad_id   `json:"conns"`
+	Notification Notifications `json:"notification"`
 }
 
 func (s *ApiHandler) activeLoop(ws *websocket.Conn) {
@@ -210,9 +217,33 @@ func (s *ApiHandler) activeLoop(ws *websocket.Conn) {
 		fmt.Println(string(msg))
 		if broad.Type == "add" {
 			s.active_conns[broad.ID] = ws
+			s.broadcast_to_all(ws)
+		}
+		if broad.Type == "notify" {
+			//Add it to the db
+			notification := s.newNotification(broad.Content, uuid.MustParse(broad.ID))
+			recepient, ok := s.active_conns[broad.ID]
+			if ok {
+				//Send it to the user in real time.
+				data := return_message{
+					Type:         "notify",
+					Notification: notification,
+				}
+				marshal_message, erro := json.Marshal(data)
+				if erro != nil {
+					fmt.Println("Error while marshalling the message structure : ", erro)
+				}
+				go func(ws *websocket.Conn) {
+					if _, err := ws.Write(marshal_message); err != nil {
+						fmt.Println("Write error : ", err)
+					}
+				}(recepient)
+			} else {
+				//store it to the database
+				s.handlePostNotifcation(notification)
+			}
 		}
 		defer s.remove(ws, broad.ID)
-		s.broadcast_to_all(ws)
 	}
 }
 
@@ -229,13 +260,17 @@ func (s *ApiHandler) broadcast_to_all(ws *websocket.Conn) {
 		}
 		data = append(data, &broad)
 	}
-	marshal_message, err := json.Marshal(data)
+	message := return_message{
+		Type:  "active",
+		Conns: data,
+	}
+	marshal, err := json.Marshal(message)
 	if err != nil {
 		fmt.Println("There is an error in converting to json", err)
 	}
 	for _, aws := range s.active_conns {
 		go func(ws *websocket.Conn) {
-			if _, err := ws.Write(marshal_message); err != nil {
+			if _, err := ws.Write(marshal); err != nil {
 				fmt.Println("Write error : ", err)
 			}
 		}(aws)

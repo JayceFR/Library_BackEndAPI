@@ -62,6 +62,13 @@ type Images struct {
 	Data      []byte    `gorm:"type:longblob" json:"data"`
 }
 
+type Notifications struct {
+	ID         uuid.UUID `gorm:"primarykey" json:"id"`
+	Content    string    `json:"content"`
+	Date       time.Time `json:"date"`
+	ReceiverID uuid.UUID `json:"receiverid"`
+}
+
 func New() *ApiHandler {
 	//db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
 	dsn := "u217768772_Jayce:WHSJayce1@tcp(srv707.hstgr.io)/u217768772_Jayce?parseTime=true"
@@ -74,6 +81,7 @@ func New() *ApiHandler {
 	db.AutoMigrate(&Message{})
 	db.AutoMigrate(&Book{})
 	db.AutoMigrate(&Images{})
+	db.AutoMigrate(&Notifications{})
 	return &ApiHandler{
 		db:           *db,
 		conns:        make(map[uuid.UUID]*websocket.Conn),
