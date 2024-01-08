@@ -109,7 +109,11 @@ func (s *ApiHandler) handleUpdateBook(ctx context.Context, w http.ResponseWriter
 			if err != nil {
 				return err
 			}
-			s.db.Model(&Book{}).Where("id = ?", id).Update("borrowed", 1).Update("borrowed_date", borrowed_date).Update("return_date", return_date).Update("borrower_id", updateBook.UserId)
+			s.db.Model(&Book{}).Where("id = ?", id).
+				Update("borrowed", 1).
+				Update("borrowed_date", borrowed_date).
+				Update("return_date", return_date).
+				Update("borrower_id", updateBook.UserId)
 		} else {
 			return fmt.Errorf("Already the book is borrwoed")
 		}

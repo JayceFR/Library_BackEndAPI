@@ -243,6 +243,24 @@ func (s *ApiHandler) activeLoop(ws *websocket.Conn) {
 				s.handlePostNotifcation(notification)
 			}
 		}
+		if broad.Type == "request" {
+			for k, v := range s.active_conns {
+				if v == ws {
+					fmt.Println("Gotcha", k)
+					message := &Message{
+						ID:         uuid.New(),
+						Content:    broad.Content, //holds the uuid of the book
+						SenderID:   uuid.MustParse(k),
+						ReceiverID: uuid.MustParse(broad.ID),
+						SentAt:     time.Now(),
+						Seen:       false,
+						Request:    true,
+					}
+					s.broadcast_message(message, ws)
+				}
+			}
+
+		}
 		defer s.remove(ws, broad.ID)
 	}
 }
