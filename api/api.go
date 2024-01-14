@@ -12,21 +12,24 @@ import (
 )
 
 type APIServer struct {
-	listenAddr string
+	listenAddr string //The port to run the API on.
 }
 
 type apiFunc func(http.ResponseWriter, *http.Request) error
 
+// Utility function to convert object to JSON
 func WriteJson(w http.ResponseWriter, status int, v any) error {
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(status)
 	return json.NewEncoder(w).Encode(v)
 }
 
+// Hold any write/read errors
 type ApiError struct {
 	Error string
 }
 
+// Convert the function signature to the required.
 func makeHttpHandleFunc(f apiFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := f(w, r)
@@ -38,12 +41,14 @@ func makeHttpHandleFunc(f apiFunc) http.HandlerFunc {
 	}
 }
 
+// Constructor to create a new object of type ApiServer
 func NewApiServer(listenAddr string) *APIServer {
 	return &APIServer{
 		listenAddr: listenAddr,
 	}
 }
 
+// Procedure to add Cors support to the API.
 func enableCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*") // Allow requests from any origin
@@ -59,6 +64,7 @@ func enableCORS(next http.Handler) http.Handler {
 	})
 }
 
+// Links endpoints to their respective functions.
 func (s *APIServer) Run() {
 	router := mux.NewRouter()
 	router.Use(enableCORS)
@@ -79,6 +85,7 @@ func (s *APIServer) Run() {
 	router.HandleFunc("/book/{id}", makeHttpHandleFunc(ApiHandler.HandleSpecificBook))
 	router.HandleFunc("/images", makeHttpHandleFunc(ApiHandler.HandleImages))
 	router.HandleFunc("/bookuser/{id}", makeHttpHandleFunc(ApiHandler.HandleBookUser))
+	//Run the API on the port
 	http.ListenAndServe(s.listenAddr, router)
 }
 

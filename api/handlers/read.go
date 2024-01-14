@@ -9,14 +9,17 @@ import (
 )
 
 func (s *ApiHandler) GetAllAcounts(ctx context.Context, db gorm.DB) ([]*Account, error) {
+	//Get all the rows from the accounts table.
 	rows, err := s.db.WithContext(ctx).
 		Select("*").
 		Table("accounts").
 		Rows()
+	//Check for any errors
 	if err != nil {
 		return []*Account{}, err
 	}
 	response := []*Account{}
+	//Iterate though the rows and scan it into an Account object.
 	for rows.Next() {
 		account := Account{}
 		err := rows.Scan(
@@ -29,6 +32,7 @@ func (s *ApiHandler) GetAllAcounts(ctx context.Context, db gorm.DB) ([]*Account,
 		if err != nil {
 			return []*Account{}, err
 		}
+		//Append the object to the list.
 		response = append(response, &account)
 	}
 	return response, nil

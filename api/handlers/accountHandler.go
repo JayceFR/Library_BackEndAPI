@@ -17,22 +17,21 @@ func (s *ApiHandler) handleGetAccount(ctx context.Context, w http.ResponseWriter
 	return s.WriteJson(w, http.StatusOK, account)
 }
 
-type UpdateAccount struct{
-  Community_ID string `json:"community_id"`
+type UpdateAccount struct {
+	Community_ID string `json:"community_id"`
 }
 
 func (s *ApiHandler) handleUpdateCommId(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-  id := mux.Vars(r)["id"]
-  updateAccount := UpdateAccount{}
-  err := json.NewDecoder(r.Body).Decode(&updateAccount)
-  if err != nil{
-    fmt.Printf(err.Error())
-  }
-  s.db.Model(&Account{}).Where("id = ?", id).Update("community_id", updateAccount.Community_ID)
-  return s.WriteJson(w, http.StatusOK, updateAccount)
-  
+	id := mux.Vars(r)["id"]
+	updateAccount := UpdateAccount{}
+	err := json.NewDecoder(r.Body).Decode(&updateAccount)
+	if err != nil {
+		fmt.Printf(err.Error())
+	}
+	s.db.Model(&Account{}).Where("id = ?", id).Update("community_id", updateAccount.Community_ID)
+	return s.WriteJson(w, http.StatusOK, updateAccount)
+
 }
-  
 
 func (s *ApiHandler) handleGetAllAccount(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	response, err := s.GetAllAcounts(ctx, s.db)
@@ -56,20 +55,22 @@ func (s *ApiHandler) handleCreateAccount(ctx context.Context, w http.ResponseWri
 	if err != nil {
 		fmt.Println(err.Error())
 	}
+	//Hashing the password using sha256.
 	h := sha256.New()
 	h.Write([]byte(createAccount.Password))
 	bs := h.Sum(nil)
 	var check_account Account
+	// Checking if an account already exists with the same email in the database.
 	s.db.First(&check_account, "email = ?", createAccount.Email)
 	if check_account.ID.String() == null_uuid {
 		fmt.Println("Email is not Found")
+		//Create a new account and store it in the database.
 		account := s.NewAccount(createAccount.FirstName, createAccount.Email, bs)
 		s.db.Create(account)
 		return s.WriteJson(w, http.StatusOK, createAccount)
 	} else {
 		return s.WriteJson(w, http.StatusBadRequest, "Found another user with the same email id")
 	}
-
 }
 
 func (s *ApiHandler) handleDeleteAccount(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
