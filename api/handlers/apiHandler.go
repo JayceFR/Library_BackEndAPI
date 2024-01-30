@@ -235,3 +235,11 @@ func (s *ApiHandler) HandleImages(w http.ResponseWriter, r *http.Request) error 
 	}
 	return fmt.Errorf("method not allowed %s", r.Method)
 }
+
+func (s *ApiHandler) HandleNotifications(w http.ResponseWriter, r *http.Request) error {
+	ctx := context.Background()
+	if r.Method == "DELETE" {
+		return s.handeDeleteNotification(ctx, w, r)
+	}
+	return fmt.Errorf("method not allowed %s", r.Method)
+}

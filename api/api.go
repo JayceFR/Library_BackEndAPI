@@ -85,6 +85,7 @@ func (s *APIServer) Run() {
 	router.HandleFunc("/book/{id}", makeHttpHandleFunc(ApiHandler.HandleSpecificBook))
 	router.HandleFunc("/images", makeHttpHandleFunc(ApiHandler.HandleImages))
 	router.HandleFunc("/bookuser/{id}", makeHttpHandleFunc(ApiHandler.HandleBookUser))
+	router.HandleFunc("/notifications/{id}", makeHttpHandleFunc(ApiHandler.HandleNotifications))
 	//Run the API on the port
 	http.ListenAndServe(s.listenAddr, router)
 }

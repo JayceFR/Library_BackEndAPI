@@ -2,9 +2,11 @@ package api
 
 import (
 	"context"
+	"net/http"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/gorilla/mux"
 )
 
 func (s *ApiHandler) newNotification(content string, receiver_id uuid.UUID) Notifications {
@@ -46,4 +48,10 @@ func (s *ApiHandler) handleGetNotifications(ctx context.Context, id uuid.UUID) (
 		notifications = append(notifications, &notify)
 	}
 	return notifications, nil
+}
+
+func (s *ApiHandler) handeDeleteNotification(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	id := mux.Vars(r)["id"]
+	s.db.Delete(&Notifications{}, "id = ?", id)
+	return s.WriteJson(w, http.StatusOK, "success")
 }
