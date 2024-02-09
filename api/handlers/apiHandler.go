@@ -13,6 +13,8 @@ import (
 	"gorm.io/gorm"
 )
 
+//Declaring the classes. 
+
 type ApiHandler struct {
 	db           gorm.DB
 	conns        map[uuid.UUID]*websocket.Conn
@@ -69,9 +71,12 @@ type Notifications struct {
 	ReceiverID uuid.UUID `json:"receiverid"`
 }
 
+//Constructor to create a new account object.
 func New() *ApiHandler {
+  //To host a database locally. 
 	//db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
 	dsn := "u217768772_Jayce:WHSJayce1@tcp(srv707.hstgr.io)/u217768772_Jayce?parseTime=true"
+  //Connecting to an external hosting database site. 
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		fmt.Println(err.Error())
@@ -89,6 +94,7 @@ func New() *ApiHandler {
 	}
 }
 
+//Constructor to create a new acount object.
 func (s *ApiHandler) NewAccount(firstName string, email string, passowrd []byte) *Account {
 	id := uuid.New()
 	return &Account{
@@ -100,6 +106,7 @@ func (s *ApiHandler) NewAccount(firstName string, email string, passowrd []byte)
 	}
 }
 
+//Constructor to create a new community object. 
 func (s *ApiHandler) NewCommunity(communityName string) *Community {
 	id := uuid.New()
 	return &Community{
@@ -114,6 +121,7 @@ func (s *ApiHandler) WriteJson(w http.ResponseWriter, status int, v any) error {
 	return json.NewEncoder(w).Encode(v)
 }
 
+// Handling the /account endpoint. 
 func (s *ApiHandler) HandleAccount(w http.ResponseWriter, r *http.Request) error {
 	ctx := context.Background()
 	if r.Method == "GET" {
@@ -125,6 +133,7 @@ func (s *ApiHandler) HandleAccount(w http.ResponseWriter, r *http.Request) error
 	return fmt.Errorf("method not allowed %s", r.Method)
 }
 
+//Handling the /account/{id} endpoint. 
 func (s *ApiHandler) HandleSpecificAccount(w http.ResponseWriter, r *http.Request) error {
 	ctx := context.Background()
 	if r.Method == "GET" {
@@ -140,6 +149,7 @@ func (s *ApiHandler) HandleSpecificAccount(w http.ResponseWriter, r *http.Reques
 	return fmt.Errorf("method not allowed %s", r.Method)
 }
 
+//Handling the /login endpoint. 
 func (s *ApiHandler) HandleLogin(w http.ResponseWriter, r *http.Request) error {
 	ctx := context.Background()
 	if r.Method == "POST" {
@@ -148,12 +158,7 @@ func (s *ApiHandler) HandleLogin(w http.ResponseWriter, r *http.Request) error {
 	return fmt.Errorf("method not allowed %s", r.Method)
 }
 
-// func (s *ApiHandler) HandleSpecificCommunity(w http.ResponseWriter, r *http.Request) error {
-// 	ctx := context.Background()
-
-// 	return fmt.Errorf("method not allowed %s", r.Method)
-// }
-
+//Handling th /community endpoint 
 func (s *ApiHandler) HandleComms(w http.ResponseWriter, r *http.Request) error {
 	ctx := context.Background()
 	if r.Method == "GET" {
@@ -165,6 +170,7 @@ func (s *ApiHandler) HandleComms(w http.ResponseWriter, r *http.Request) error {
 	return fmt.Errorf("method not allowed %s", r.Method)
 }
 
+//Handling the /community/{id} endpoint.
 func (s *ApiHandler) HandleSpecificComm(w http.ResponseWriter, r *http.Request) error {
 	ctx := context.Background()
 	if r.Method == "GET" {
@@ -173,6 +179,7 @@ func (s *ApiHandler) HandleSpecificComm(w http.ResponseWriter, r *http.Request) 
 	return fmt.Errorf("method not allowed %s", r.Method)
 }
 
+//Handling the /messages endpoint 
 func (s *ApiHandler) HandleMessages(w http.ResponseWriter, r *http.Request) error {
 	ctx := context.Background()
 	if r.Method == "POST" {
@@ -181,6 +188,7 @@ func (s *ApiHandler) HandleMessages(w http.ResponseWriter, r *http.Request) erro
 	return fmt.Errorf("method not allowed %s", r.Method)
 }
 
+//Handling the /messages{id} endpoint.
 func (s *ApiHandler) HandleSpecificMessage(w http.ResponseWriter, r *http.Request) error {
 	ctx := context.Background()
 	if r.Method == "GET" {
@@ -195,6 +203,7 @@ func (s *ApiHandler) HandleSpecificMessage(w http.ResponseWriter, r *http.Reques
 	return fmt.Errorf("method not allowed %s", r.Method)
 }
 
+//Handling the /books endpoint. 
 func (s *ApiHandler) HandleBooks(w http.ResponseWriter, r *http.Request) error {
 	ctx := context.Background()
 	if r.Method == "GET" {
@@ -206,6 +215,7 @@ func (s *ApiHandler) HandleBooks(w http.ResponseWriter, r *http.Request) error {
 	return fmt.Errorf("method not allowed %s", r.Method)
 }
 
+//Handling the /book/{id} endpoint.
 func (s *ApiHandler) HandleSpecificBook(w http.ResponseWriter, r *http.Request) error {
 	ctx := context.Background()
 	if r.Method == "GET" {
@@ -220,6 +230,7 @@ func (s *ApiHandler) HandleSpecificBook(w http.ResponseWriter, r *http.Request) 
 	return fmt.Errorf("method not allowed %s", r.Method)
 }
 
+//Handling the /bookuser/{id} endpoint 
 func (s *ApiHandler) HandleBookUser(w http.ResponseWriter, r *http.Request) error {
 	ctx := context.Background()
 	if r.Method == "GET" {
@@ -228,6 +239,7 @@ func (s *ApiHandler) HandleBookUser(w http.ResponseWriter, r *http.Request) erro
 	return fmt.Errorf("method not allowed %s", r.Method)
 }
 
+//Handling the /images endpoint 
 func (s *ApiHandler) HandleImages(w http.ResponseWriter, r *http.Request) error {
 	ctx := context.Background()
 	if r.Method == "POST" {
@@ -236,6 +248,7 @@ func (s *ApiHandler) HandleImages(w http.ResponseWriter, r *http.Request) error 
 	return fmt.Errorf("method not allowed %s", r.Method)
 }
 
+//Handling the /notifications endpoint. 
 func (s *ApiHandler) HandleNotifications(w http.ResponseWriter, r *http.Request) error {
 	ctx := context.Background()
 	if r.Method == "DELETE" {

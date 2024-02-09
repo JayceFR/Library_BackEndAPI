@@ -184,15 +184,19 @@ func (s *ApiHandler) GetChatHistory(ctx context.Context, db gorm.DB, user_id str
 	return response, nil
 }
 
+//fetch the books for a respective user
 func (s *ApiHandler) GetBooks(ctx context.Context, db gorm.DB, id string) ([]*books_fetch, error) {
 	rows := &sql.Rows{}
 	var err error
+  //Check if an id of the user is provided. 
 	if id == "" {
+    //Fetch all the books 
 		rows, err = s.db.WithContext(ctx).
 			Select("*").
 			Table("books").
 			Rows()
 	} else {
+    //fetch a specific book.
 		rows, err = s.db.WithContext(ctx).
 			Select("*").
 			Table("books").
@@ -205,6 +209,7 @@ func (s *ApiHandler) GetBooks(ctx context.Context, db gorm.DB, id string) ([]*bo
 	books := []*books_fetch{}
 	for rows.Next() {
 		gbook := Book{}
+    //store each individual book in the slice.
 		err = rows.Scan(
 			&gbook.ID,
 			&gbook.Owner_id,
@@ -219,6 +224,7 @@ func (s *ApiHandler) GetBooks(ctx context.Context, db gorm.DB, id string) ([]*bo
 		if err != nil {
 			return []*books_fetch{}, err
 		}
+    //Fetch the profile image for the book
 		gimage := Images{}
 		s.db.First(&gimage, "object_id = ? and type = 'profile'", gbook.ID)
 		curr_book := books_fetch{

@@ -33,7 +33,7 @@ func (s *ApiHandler) handle_post_book(ctx context.Context, w http.ResponseWriter
 		Borrowed:    false,
 		Borrower_id: uuid.Nil,
 	}
-
+  //Store the book from the database.
 	s.db.Create(book)
 	return s.WriteJson(w, http.StatusOK, book)
 }
@@ -44,8 +44,7 @@ type books_fetch struct {
 }
 
 func (s *ApiHandler) handle_get_books(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-	books, err := s.GetBooks(ctx, s.db, "")
-	fmt.Println(books[0].Book)
+	books, err := s.GetBooks(ctx, s.db, "") //Fetch all the books. 
 	if err != nil {
 		return err
 	}
@@ -60,9 +59,9 @@ type specific_book_fetch struct {
 func (s *ApiHandler) handleGetSpecificBook(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	id := mux.Vars(r)["id"]
 	book := Book{}
-	s.db.First(&book, "id = ?", id)
+	s.db.First(&book, "id = ?", id) //Fetch the book from the database. 
 	fmt.Println("Here is the book", book)
-	images, err := s.handle_get_image(ctx, id)
+	images, err := s.handle_get_image(ctx, id) //Fetch the images for the respective book. 
 	if err != nil {
 		return err
 	}
@@ -76,6 +75,7 @@ func (s *ApiHandler) handleGetSpecificBook(ctx context.Context, w http.ResponseW
 func (s *ApiHandler) handleGetSpecificBookMessage(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	id := mux.Vars(r)["id"]
 	book := Book{}
+  //Fetch the book from the database. 
 	s.db.First(&book, "id = ?", id)
 	return s.WriteJson(w, http.StatusOK, book)
 }
@@ -94,6 +94,7 @@ func (s *ApiHandler) handleUpdateBook(ctx context.Context, w http.ResponseWriter
 	if err != nil {
 		return err
 	}
+  //Perform a check to see if the borrowed state is to be changed to true or false.
 	if updateBook.State == "return" {
 		s.db.Model(&Book{}).Where("id = ?", id).Update("borrowed", 0)
 	}
@@ -101,14 +102,17 @@ func (s *ApiHandler) handleUpdateBook(ctx context.Context, w http.ResponseWriter
 		book := Book{}
 		s.db.First(&book, "id = ?", id)
 		if !book.Borrowed {
+      //Convert the time to the required format. 
 			borrowed_date, err := time.Parse("2006-01-02 15:04:05.000", updateBook.From)
 			if err != nil {
 				return err
 			}
+      //Convert the time to the required format. 
 			return_date, err := time.Parse("2006-01-02 15:04:05.000", updateBook.To)
 			if err != nil {
 				return err
 			}
+      //Update the book in the database. 
 			s.db.Model(&Book{}).Where("id = ?", id).
 				Update("borrowed", 1).
 				Update("borrowed_date", borrowed_date).
@@ -119,6 +123,7 @@ func (s *ApiHandler) handleUpdateBook(ctx context.Context, w http.ResponseWriter
 		}
 	}
 	return_book := Book{}
+  //Fetch the updated book from the database. 
 	s.db.First(&return_book, "id = ?", id)
 	return s.WriteJson(w, http.StatusOK, return_book)
 }

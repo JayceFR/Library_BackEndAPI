@@ -10,8 +10,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
-	"golang.org/x/net/websocket"
+	"golang.org/x/net/websocket" // used to make sockets
 )
+
+//Handle socket connection and hhtp requests for messages
 
 type Message_Posted struct {
 	Content     string `json: "content"`
@@ -55,29 +57,35 @@ func (s *ApiHandler) getChats(ctx context.Context, w http.ResponseWriter, r *htt
 }
 
 func (s *ApiHandler) WebsocketHandler(w http.ResponseWriter, r *http.Request) {
+  //Create a new socket handler 
 	wsHandler := websocket.Handler(func(ws *websocket.Conn) {
 		defer ws.Close()
 		fmt.Println("New incoming connection from client : ", ws.RemoteAddr())
-		id := uuid.MustParse(r.URL.Query().Get("id"))
+		id := uuid.MustParse(r.URL.Query().Get("id")) //fetch the user id passed in the request
 		s.conns[id] = ws
-		s.readLoop(ws)
+		s.readLoop(ws) // call the function to handle the incoming connection
 	})
 	wsHandler.ServeHTTP(w, r)
 }
 
+//handler for requests and messages 
 func (s *ApiHandler) readLoop(ws *websocket.Conn) {
+  //max size of 1024 
 	buf := make([]byte, 1024)
 	for {
-		n, err := ws.Read(buf)
+		n, err := ws.Read(buf) //slice the message only upto 1024 bytes
+    //Check if there are any read errors encountered
 		if err != nil {
 			if err == io.EOF {
 				break
 			}
+      //continue the loop to process next incoming request
 			fmt.Println("Read error encountered : ", err)
 			continue
 		}
 		msg := buf[:n]
 		var post_message Message_Posted
+    //convery the bytes slice to JSON. 
 		err = json.Unmarshal(msg, &post_message)
 		if err != nil {
 			panic(err)
@@ -87,7 +95,7 @@ func (s *ApiHandler) readLoop(ws *websocket.Conn) {
 		fmt.Println("Content", post_message.Content)
 
 		fmt.Println(string(msg))
-		// ws.Write([]byte("thank you for the msg!!! "))
+    //Check if the type is request or message
 		if !post_message.Request {
 			message := &Message{
 				ID:         uuid.New(),
@@ -98,6 +106,7 @@ func (s *ApiHandler) readLoop(ws *websocket.Conn) {
 				Seen:       false,
 				Request:    false,
 			}
+      //call the function to send the message
 			s.broadcast_message(message, ws)
 		} else {
 			message := &Message{
@@ -114,6 +123,7 @@ func (s *ApiHandler) readLoop(ws *websocket.Conn) {
 	}
 }
 
+//Fetch the books posted by the user
 func (s *ApiHandler) handleGetUserBook(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	id := mux.Vars(r)["id"]
 	books, err := s.GetBooks(ctx, s.db, id)
@@ -140,13 +150,14 @@ func (s *ApiHandler) handleUpdateMessage(ctx context.Context, w http.ResponseWri
 	return s.WriteJson(w, http.StatusOK, return_data)
 }
 
+//deleting the message 
 func (s *ApiHandler) handleDeleteMessage(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	id := mux.Vars(r)["id"]
 	s.db.Delete(&Message{}, "id = ?", id)
 	return s.WriteJson(w, http.StatusOK, "success")
 }
-
 func (s *ApiHandler) broadcast_message(message *Message, sender *websocket.Conn) {
+  //check if the recepient is currently active/online
 	recepient, ok := s.conns[message.ReceiverID]
 	marshal_message, erro := json.Marshal(message)
 	if erro != nil {
@@ -156,6 +167,7 @@ func (s *ApiHandler) broadcast_message(message *Message, sender *websocket.Conn)
 		fmt.Println("Recepient not found ")
 
 	} else {
+    //send the message to the recipient 
 		go func(ws *websocket.Conn) {
 			if _, err := ws.Write(marshal_message); err != nil {
 				fmt.Println("Write error : ", err)
@@ -198,6 +210,7 @@ type return_message struct {
 }
 
 func (s *ApiHandler) activeLoop(ws *websocket.Conn) {
+  //make a channel to receive the messages
 	buf := make([]byte, 1024)
 	for {
 		n, err := ws.Read(buf)
@@ -215,6 +228,7 @@ func (s *ApiHandler) activeLoop(ws *websocket.Conn) {
 			panic(err)
 		}
 		fmt.Println(string(msg))
+    //check the type of the message
 		if broad.Type == "add" {
 			s.active_conns[broad.ID] = ws
 			s.broadcast_to_all(ws)
@@ -261,10 +275,12 @@ func (s *ApiHandler) activeLoop(ws *websocket.Conn) {
 			}
 
 		}
+    //remove the user from the list of active connections once the conncetion closes
 		defer s.remove(ws, broad.ID)
 	}
 }
 
+//remove the user from the active connections
 func (s *ApiHandler) remove(ws *websocket.Conn, id string) {
 	delete(s.active_conns, id)
 	s.broadcast_to_all(ws)
@@ -282,11 +298,13 @@ func (s *ApiHandler) broadcast_to_all(ws *websocket.Conn) {
 		Type:  "active",
 		Conns: data,
 	}
+  //Convert the byte slice into json
 	marshal, err := json.Marshal(message)
 	if err != nil {
 		fmt.Println("There is an error in converting to json", err)
 	}
 	for _, aws := range s.active_conns {
+    //send the message to all the active connections
 		go func(ws *websocket.Conn) {
 			if _, err := ws.Write(marshal); err != nil {
 				fmt.Println("Write error : ", err)

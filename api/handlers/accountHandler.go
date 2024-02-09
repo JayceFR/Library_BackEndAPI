@@ -1,5 +1,7 @@
 package api
 
+// Handler for the /account endpoint
+
 import (
 	"context"
 	"crypto/sha256"
@@ -24,7 +26,7 @@ type UpdateAccount struct {
 func (s *ApiHandler) handleUpdateCommId(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	id := mux.Vars(r)["id"]
 	updateAccount := UpdateAccount{}
-	err := json.NewDecoder(r.Body).Decode(&updateAccount)
+	err := json.NewDecoder(r.Body).Decode(&updateAccount) // To extract the body of the request
 	if err != nil {
 		fmt.Printf(err.Error())
 	}
@@ -73,6 +75,7 @@ func (s *ApiHandler) handleCreateAccount(ctx context.Context, w http.ResponseWri
 	}
 }
 
+//Handle deleting the account from the database.
 func (s *ApiHandler) handleDeleteAccount(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	id := mux.Vars(r)["id"]
 	s.db.Delete(&Account{}, "id = ?", id)
